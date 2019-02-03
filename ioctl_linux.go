@@ -21,8 +21,8 @@ const (
 	ioctlKVMCreateVCPU             = 0xAE41
 	ioctlKVMGetRegs                = 0x8090AE81
 	ioctlKVMSetRegs                = 0x4090ae82
-	ioctlKVMGetSregs               = 0x8138AE83
-	ioctlKVMSetSregs               = 0x4138AE84
+	ioctlKVMGetSRegs               = 0x8138AE83
+	ioctlKVMSetSRegs               = 0x4138AE84
 	ioctlKVMRun                    = 0xAE80
 )
 
@@ -38,16 +38,18 @@ func errnoErr(e syscall.Errno) error {
 		return syscall.EINVAL
 	case unix.ENOENT:
 		return syscall.ENOENT
+	case unix.EINTR:
+		return syscall.EINTR
 	}
 	return e
 }
 
-// ioctler is an interface capable calling ioctl
+// ioctler is an interface capable of calling ioctl
 type ioctler interface {
 	ioctl(fd uintptr, req uint, arg uintptr) (ret uintptr, err error)
 }
 
-// A osIoctler struct does OS calls to ioctl.
+// An osIoctler struct does OS calls to ioctl.
 type osIoctler struct{}
 
 func (osIoctler) ioctl(fd uintptr, req uint, arg uintptr) (ret uintptr, err error) {
