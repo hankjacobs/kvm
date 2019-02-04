@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"runtime"
@@ -9,32 +11,29 @@ import (
 	"syscall"
 
 	"github.com/hankjacobs/kvm"
-)
-
-const (
-	kvmGetAPIVersion          = 0xAE00
-	kvmCreateVM               = 0xAE01
-	kvmGetMSRIndexList        = 0xC004AE02
-	kvmS390EnableSIE          = 0xAE06
-	kvmCheckExtension         = 0xAE03
-	kvmGetVCPUMMAPSize        = 0xAE04
-	kvmGetSupportedCPUID      = 0xC008AE05
-	kvmGetEmulatedCPUID       = 0xC008AE09
-	kvmGetMSRFeatureIndexList = 0xC004AE0A
-	kvmSetUserMemoryRegion    = 0x4020AE46
-	kvmCreateVCPU             = 0xAE41
-	kvmGetRegs                = 0x8090AE81
-	kvmSetRegs                = 0x4090ae82
-	kvmGetSregs               = 0x8138AE83
-	kvmSetSregs               = 0x4138AE84
-	kvmRun                    = 0xAE80
+	"github.com/hankjacobs/kvm/asmbuilder"
 )
 
 func main() {
-	//prog := []uint8("\xB0\x61\xBA\x17\x02\xEE\xB0\n\xEE\xF4") // print a
-	//prog := []uint8("\xba\xf8\x03\x00\xd8\x04\x30\xee\xb0\x0a\xee\xf4") // add al bl
-	prog := []uint8("\xeb\xfe") // infinite loop
-	doKvm(prog)
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) != 1 {
+		fmt.Println("please specify asm file")
+		os.Exit(1)
+	}
+
+	asm, err := ioutil.ReadFile(args[0])
+	if err != nil {
+		panic(err.Error())
+	}
+
+	bin, err := asmbuilder.Build(asm)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	doKvm(bin)
 }
 
 func doKvm(code []uint8) {
@@ -133,7 +132,7 @@ func doKvm(code []uint8) {
 			case kvm.ExitReasonHlt:
 				fmt.Println("Halted")
 				done = true
-			case kvm.ExitReasonIo:
+			case kvm.ExitReasonIO:
 				fmt.Println("IO:")
 				fmt.Println(string(vcpu.ExitIOData()))
 			case kvm.ExitReasonFailEntry:
@@ -142,6 +141,7 @@ func doKvm(code []uint8) {
 				panic(vcpu.ExitInternalError().Suberror)
 			case kvm.ExitReasonShutdown:
 				fmt.Println("Shutdown")
+				done = true
 			default:
 				panic(fmt.Sprintf("unhandled %d", exitReason))
 			}

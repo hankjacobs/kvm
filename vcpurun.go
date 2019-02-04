@@ -5,7 +5,7 @@ type ExitReason int
 const (
 	ExitReasonUnknown ExitReason = iota
 	ExitReasonException
-	ExitReasonIo
+	ExitReasonIO
 	ExitReasonHypercall
 	ExitReasonDebug
 	ExitReasonHlt
@@ -33,15 +33,15 @@ const (
 	ExitReasonHyperv
 )
 
-type exitDirection uint8
+type IODirection uint8
 
 const (
-	exitDirectionIn  exitDirection = 0
-	exitDirectionOut exitDirection = 1
+	IODirectionIn  IODirection = 0
+	IODirectionOut IODirection = 1
 )
 
 type ExitIO struct {
-	Direction  exitDirection
+	Direction  IODirection
 	Size       uint8
 	Port       uint16
 	Count      uint32
