@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	fBin := flag.Bool("bin", false, "Specified file is a binary. Assembler step will be skipped.")
 	flag.Parse()
 
 	args := flag.Args()
@@ -23,14 +24,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	asm, err := ioutil.ReadFile(args[0])
+	file, err := ioutil.ReadFile(args[0])
 	if err != nil {
 		panic(err.Error())
 	}
 
-	bin, err := asmbuilder.Build(asm)
-	if err != nil {
-		panic(err.Error())
+	var bin []byte
+	if *fBin {
+		bin = file
+	} else {
+		bin, err = asmbuilder.Build(file)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	doKvm(bin)
@@ -133,8 +139,7 @@ func doKvm(code []uint8) {
 				fmt.Println("Halted")
 				done = true
 			case kvm.ExitReasonIO:
-				fmt.Println("IO:")
-				fmt.Println(string(vcpu.ExitIOData()))
+				fmt.Printf("IO: %+v\n", vcpu.ExitIO())
 			case kvm.ExitReasonFailEntry:
 				panic(vcpu.ExitFailEntry().HardwareEntryFailureReason)
 			case kvm.ExitReasonInternalError:
